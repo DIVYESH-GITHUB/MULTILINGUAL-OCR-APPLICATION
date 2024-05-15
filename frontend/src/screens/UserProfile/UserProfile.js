@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import navigationStrings from "../../navigations/navigationStrings";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import colors from "../../constants/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -25,46 +25,51 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [totalScans, setTotalScans] = useState(0);
 
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const userDataJSON = await AsyncStorage.getItem("userData");
-        console.log(userDataJSON);
-        if (userDataJSON) {
-          const userData = JSON.parse(userDataJSON);
-          setUserData(userData);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.log("Error retrieving user data: ", error);
-      }
-    };
-
-    const fetchHistory = async () => {
-      try {
-        let userData = await AsyncStorage.getItem("userData");
-        userData = JSON.parse(userData);
-
-        const response = await axios.post(
-          `http://${url}:3000/api/v1/users/history`,
-          { _id: userData._id }
-        );
-
-        if (response.status === 200) {
-          setTotalScans(response.data.data.length);
-        } else {
-          throw new Error("Failed to fetch history");
-        }
-      } catch (error) {
-        console.error("Error fetching history:", error);
-      } finally {
+  const getUserData = async () => {
+    try {
+      const userDataJSON = await AsyncStorage.getItem("userData");
+      console.log(userDataJSON);
+      if (userDataJSON) {
+        const userData = JSON.parse(userDataJSON);
+        setUserData(userData);
         setLoading(false);
       }
-    };
+    } catch (error) {
+      console.log("Error retrieving user data: ", error);
+    }
+  };
 
+  const fetchHistory = async () => {
+    try {
+      let userData = await AsyncStorage.getItem("userData");
+      userData = JSON.parse(userData);
+
+      const response = await axios.post(
+        `http://${url}:3000/api/v1/users/history`,
+        { _id: userData._id }
+      );
+
+      if (response.status === 200) {
+        setTotalScans(response.data.data.length);
+      } else {
+        throw new Error("Failed to fetch history");
+      }
+    } catch (error) {
+      console.error("Error fetching history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     getUserData();
-    fetchHistory();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory();
+    }, [])
+  );
 
   const handleLogout = async () => {
     Alert.alert(

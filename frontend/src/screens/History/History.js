@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import { url } from "../../constants/backendUrl";
 import * as Clipboard from "expo-clipboard";
 import colors from "../../constants/colors";
@@ -18,31 +19,33 @@ const History = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        let userData = await AsyncStorage.getItem("userData");
-        userData = JSON.parse(userData);
+  const fetchHistory = async () => {
+    try {
+      let userData = await AsyncStorage.getItem("userData");
+      userData = JSON.parse(userData);
 
-        const response = await axios.post(
-          `http://${url}:3000/api/v1/users/history`,
-          { _id: userData._id }
-        );
+      const response = await axios.post(
+        `http://${url}:3000/api/v1/users/history`,
+        { _id: userData._id }
+      );
 
-        if (response.status === 200) {
-          setHistory(response.data.data);
-        } else {
-          throw new Error("Failed to fetch history");
-        }
-      } catch (error) {
-        console.error("Error fetching history:", error);
-      } finally {
-        setLoading(false);
+      if (response.status === 200) {
+        setHistory(response.data.data);
+      } else {
+        throw new Error("Failed to fetch history");
       }
-    };
+    } catch (error) {
+      console.error("Error fetching history:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchHistory();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchHistory();
+    }, [])
+  );
 
   const handleCopyToClipboard = async (text) => {
     await Clipboard.setStringAsync(text);
